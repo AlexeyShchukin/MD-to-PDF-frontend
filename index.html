@@ -37,10 +37,8 @@
             </div>
             <div class="panel-body">
                 <div class="import-bar">
-                    <label class="file-button">
-                        <input type="file" id="mdFileInput" accept=".md,.markdown,.mdown,.txt,text/markdown,text/plain">
-                        <span>Upload .md</span>
-                    </label>
+                    <input class="hidden-file-input" type="file" id="mdFileInput" accept=".md,.markdown,.mdown,.txt,text/markdown,text/plain">
+                    <button type="button" class="file-button" id="openFilePicker">Upload .md</button>
                     <input type="url" id="mdUrlInput" placeholder="Paste .md URL">
                     <button id="loadUrl" type="button">Load URL</button>
                 </div>

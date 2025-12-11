@@ -80,6 +80,7 @@ const settingsDrawer = document.getElementById("settingsDrawer");
 const toggleSettings = document.getElementById("toggleSettings");
 const closeSettings = document.getElementById("closeSettings");
 const fileInput = document.getElementById("mdFileInput");
+const openFilePicker = document.getElementById("openFilePicker");
 const mdUrlInput = document.getElementById("mdUrlInput");
 const loadUrlButton = document.getElementById("loadUrl");
 const dropZone = document.getElementById("dropZone");
@@ -150,6 +151,12 @@ function wireImportControls() {
             const file = e.target.files?.[0];
             readFile(file);
             e.target.value = "";
+        });
+    }
+
+    if (openFilePicker && fileInput) {
+        openFilePicker.addEventListener("click", () => {
+            fileInput.click();
         });
     }
 
