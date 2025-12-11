@@ -128,6 +128,17 @@ function normalizeMdUrl(url) {
     }
 }
 
+function isAllowedMdUrl(url) {
+    try {
+        const parsed = new URL(url);
+        const pathname = parsed.pathname.toLowerCase();
+        const allowedExt = [".md", ".markdown", ".mdown", ".txt"];
+        return allowedExt.some(ext => pathname.endsWith(ext));
+    } catch {
+        return false;
+    }
+}
+
 function readFile(file) {
     if (!file) return;
     if (!isAllowedFile(file)) {
@@ -165,6 +176,10 @@ function wireImportControls() {
             const url = (mdUrlInput.value || "").trim();
             if (!url) return;
             const normalizedUrl = normalizeMdUrl(url);
+            if (!isAllowedMdUrl(normalizedUrl)) {
+                alert("Only Markdown URLs are allowed (.md, .markdown, .mdown, .txt).");
+                return;
+            }
             try {
                 const res = await fetch(normalizedUrl);
                 const text = await res.text();
