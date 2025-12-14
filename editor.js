@@ -1,29 +1,36 @@
 import { defaultOptions, generateCSS } from "./settings.js";
 
-const pendingLangLoads = new Set();
+// Change this if статические файлы на другом хосте/порту
+const STATIC_BASE_URL = "http://localhost:8000/static/";
 
-function getPrismLanguage(lang, onLoaded) {
-    const requested = (lang || "").toLowerCase().trim() || "plaintext";
+// Встроенная тема подсветки для css_override (копия vendor/prism-tomorrow.min.css)
+const PRISM_THEME_CSS = `code[class*=language-],pre[class*=language-]{color:#ccc;background:none;text-shadow:0 1px rgba(0,0,0,.3);font-family:Consolas,Monaco,'Andale Mono','Ubuntu Mono',monospace;font-size:1em;text-align:left;white-space:pre;word-spacing:normal;word-break:normal;word-wrap:normal;line-height:1.5;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-hyphens:none;-moz-hyphens:none;-ms-hyphens:none;hyphens:none}pre[class*=language-]{padding:1em;margin:.5em 0;overflow:auto;border-radius:.3em}:not(pre)>code[class*=language-],pre[class*=language-]{background:#2d2d2d}:not(pre)>code[class*=language-]{padding:.1em;border-radius:.3em;white-space:normal}.token.comment,.token.block-comment,.token.prolog,.token.doctype,.token.cdata{color:#999}.token.punctuation{color:#ccc}.token.tag,.token.attr-name,.token.namespace,.token.deleted{color:#e2777a}.token.function-name{color:#6196cc}.token.boolean,.token.number,.token.function{color:#f08d49}.token.property,.token.class-name,.token.constant,.token.symbol{color:#f8c555}.token.selector,.token.important,.token.atrule,.token.keyword,.token.builtin{color:#cc99cd}.token.string,.token.char,.token.attr-value,.token.regex,.token.variable{color:#7ec699}.token.operator,.token.entity,.token.url{color:#67cdcc}.token.important,.token.bold{font-weight:700}.token.italic{font-style:italic}.token.entity{cursor:help}.token.inserted{color:green}`;
 
-    if (!Prism.languages[requested]) {
-        const loader = Prism.plugins?.autoloader?.loadLanguages;
-        Prism.plugins.autoloader.languages_path =
-            "https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/";
+const languageAliases = {
+    js: "javascript",
+    jsx: "javascript",
+    ts: "typescript",
+    tsx: "typescript",
+    sh: "bash",
+    shell: "bash",
+    zsh: "bash",
+    html: "markup",
+    xml: "markup",
+    md: "markdown",
+    markdown: "markdown",
+    yml: "yaml",
+    json5: "json",
+    txt: "plaintext",
+    text: "plaintext",
+    plain: "plaintext",
+    cplusplus: "cpp",
+    "c++": "cpp"
+};
 
-        if (loader && !pendingLangLoads.has(requested)) {
-            pendingLangLoads.add(requested);
-            try {
-                loader([requested], () => {
-                    pendingLangLoads.delete(requested);
-                    onLoaded?.(requested);
-                });
-            } catch (e) {
-                pendingLangLoads.delete(requested);
-            }
-        }
-    }
-
-    if (Prism.languages[requested]) return requested;
+function getPrismLanguage(lang) {
+    const requested = (lang || "").toLowerCase().trim();
+    const normalized = languageAliases[requested] || requested || "plaintext";
+    if (Prism.languages[normalized]) return normalized;
     return "plaintext";
 }
 
@@ -90,6 +97,44 @@ let styleOptions = { ...defaultOptions };
 let lastRenderedHtml = "";
 let codeBlockMarks = [];
 let previewInitialized = false;
+
+function buildPreviewCss(options) {
+    const customCSS = generateCSS(options);
+    const inlinePad = Math.max(options.codePadding - 1, 0);
+    return `
+${customCSS}
+body { width: 794px; max-width: 794px; min-height: 1123px; margin: 0 auto; color: #111827; }
+:not(pre) > code {
+    background: ${options.codeBackground};
+    color: ${options.codeColor};
+    padding: ${inlinePad}px ${options.codePadding}px;
+    border-radius: ${options.codeBorderRadius}px;
+}
+pre[class*="language-"] code {
+    padding: 0 !important;
+    background: transparent;
+    text-indent: 0;
+}
+pre.language-none, pre.language-none code {
+    background: ${options.preBackground};
+    color: #e5e7eb;
+    font-family: ${options.codeFont};
+    border-radius: ${options.preBorderRadius}px;
+    margin: ${options.preMargin}px 0;
+}
+img { display: block; margin: ${Math.max(options.bodyPadding / 2, 8)}px 0; }
+hr {
+    border: 0;
+    border-top: 2px solid #d1d5db;
+    margin: 16px 0;
+}
+`;
+}
+
+function buildCssOverride(options) {
+    return `${PRISM_THEME_CSS}
+${buildPreviewCss(options)}`;
+}
 
 function loadMdContent(text) {
     if (typeof text !== "string" || !text.length) return;
@@ -294,9 +339,7 @@ function highlightCodeBlocksInEditor() {
             continue;
         }
 
-        const lang = getPrismLanguage(fenceMatch[1] || "plaintext", () => {
-            highlightCodeBlocksInEditor();
-        });
+        const lang = getPrismLanguage(fenceMatch[1] || "plaintext");
         if (!Prism.languages[lang]) {
             line += 1;
             continue;
@@ -343,12 +386,26 @@ function parseInputValue(input) {
 function updatePreview() {
     const md = easyMDE.value();
     const htmlContent = marked.parse(md).replace(/<pre><code>/g, '<pre class="language-none"><code class="language-none">');
-    const customCSS = generateCSS(styleOptions);
-    const inlinePad = Math.max(styleOptions.codePadding - 1, 0);
-    const fontImports = `
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;600&family=Space+Grotesk:wght@400;600&family=Merriweather:wght@400;700&family=Inter:wght@400;600&family=Source+Serif+4:wght@400;700&family=IBM+Plex+Sans:wght@400;600&family=Fira+Code:wght@400;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+    const previewCss = buildPreviewCss(styleOptions);
+    const assetBase = window.location.origin;
+    const prismLanguageScripts = `
+  <script src="/vendor/prism.min.js"></script>
+  <script src="/vendor/prism-langs/prism-markup.min.js"></script>
+  <script src="/vendor/prism-langs/prism-bash.min.js"></script>
+  <script src="/vendor/prism-langs/prism-json.min.js"></script>
+  <script src="/vendor/prism-langs/prism-javascript.min.js"></script>
+  <script src="/vendor/prism-langs/prism-typescript.min.js"></script>
+  <script src="/vendor/prism-langs/prism-python.min.js"></script>
+  <script src="/vendor/prism-langs/prism-markdown.min.js"></script>
+  <script src="/vendor/prism-langs/prism-yaml.min.js"></script>
+  <script src="/vendor/prism-langs/prism-go.min.js"></script>
+  <script src="/vendor/prism-langs/prism-css.min.js"></script>
+  <script src="/vendor/prism-langs/prism-cpp.min.js"></script>
+  <script src="/vendor/prism-langs/prism-c.min.js"></script>
+  <script src="/vendor/prism-langs/prism-java.min.js"></script>
+  <script src="/vendor/prism-langs/prism-rust.min.js"></script>
+  <script src="/vendor/prism-langs/prism-sql.min.js"></script>
+  <script>Prism.highlightAll();</script>
 `;
 
     const html = `
@@ -356,45 +413,15 @@ function updatePreview() {
 <html>
 <head>
   <meta charset="UTF-8" />
-  ${fontImports}
-  <link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css" rel="stylesheet" />
+  <base href="${assetBase}/" />
+  <link href="/vendor/prism-tomorrow.min.css" rel="stylesheet" />
   <style id="dynamicStyles">
-    ${customCSS}
-    body { width: 794px; max-width: 794px; min-height: 1123px; margin: 0 auto; color: #111827; }
-    :not(pre) > code {
-        background: ${styleOptions.codeBackground};
-        color: ${styleOptions.codeColor};
-        padding: ${inlinePad}px ${styleOptions.codePadding}px;
-        border-radius: ${styleOptions.codeBorderRadius}px;
-    }
-    pre[class*="language-"] code {
-        padding: 0 !important;
-        background: transparent;
-        text-indent: 0;
-    }
-    pre.language-none, pre.language-none code {
-        background: ${styleOptions.preBackground};
-        color: #e5e7eb;
-        font-family: ${styleOptions.codeFont};
-        border-radius: ${styleOptions.preBorderRadius}px;
-        margin: ${styleOptions.preMargin}px 0;
-    }
-    img { display: block; margin: ${Math.max(styleOptions.bodyPadding / 2, 8)}px 0; }
-    hr {
-        border: 0;
-        border-top: 2px solid #d1d5db;
-        margin: 16px 0;
-    }
+    ${previewCss}
   </style>
 </head>
 <body>
   ${htmlContent}
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/autoloader/prism-autoloader.min.js"></script>
-  <script>
-    Prism.plugins.autoloader.languages_path = "https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/";
-    Prism.highlightAll();
-  </script>
+  ${prismLanguageScripts}
 </body>
 </html>
 `;
@@ -406,32 +433,7 @@ function updatePreview() {
         const styleTag = doc.getElementById("dynamicStyles");
         if (styleTag) {
             styleTag.textContent = `
-${customCSS}
-body { width: 794px; max-width: 794px; min-height: 1123px; margin: 0 auto; color: #111827; }
-:not(pre) > code {
-    background: ${styleOptions.codeBackground};
-    color: ${styleOptions.codeColor};
-    padding: ${inlinePad}px ${styleOptions.codePadding}px;
-    border-radius: ${styleOptions.codeBorderRadius}px;
-}
-pre[class*="language-"] code {
-    padding: 0 !important;
-    background: transparent;
-    text-indent: 0;
-}
-pre.language-none, pre.language-none code {
-    background: ${styleOptions.preBackground};
-    color: #e5e7eb;
-    font-family: ${styleOptions.codeFont};
-    border-radius: ${styleOptions.preBorderRadius}px;
-    margin: ${styleOptions.preMargin}px 0;
-}
-img { display: block; margin: ${Math.max(styleOptions.bodyPadding / 2, 8)}px 0; }
-hr {
-    border: 0;
-    border-top: 2px solid #d1d5db;
-    margin: 16px 0;
-}
+${previewCss}
 `;
         }
         const bodyEl = doc.getElementById("previewBody") || doc.body;
@@ -522,12 +524,18 @@ handleEditorChange();
 wireImportControls();
 
 document.getElementById("savePdf").addEventListener("click", async () => {
-    const html = lastRenderedHtml || preview.srcdoc;
-    if (!html) return;
+    const md = easyMDE.value() || "";
+    const cssOverride = buildCssOverride(styleOptions);
+    const payload = {
+        md,
+        css_override: cssOverride,
+        base_url: STATIC_BASE_URL
+    };
+
     const res = await fetch("http://localhost:8000/api/v1/md-to-pdf", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ md: html })
+        body: JSON.stringify(payload)
     });
 
     const blob = await res.blob();

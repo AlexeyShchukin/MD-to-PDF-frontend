@@ -14,7 +14,7 @@
 
 body {
     margin: 0;
-    font-family: 'Inter', 'Segoe UI', sans-serif;
+    font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
     background: radial-gradient(circle at 20% 20%, rgba(13,130,199,0.18), transparent 30%),
                 radial-gradient(circle at 80% 0%, rgba(10,104,158,0.16), transparent 24%),
                 var(--bg);
@@ -477,7 +477,7 @@ button.icon { width: 34px; height: 34px; padding: 0; display: grid; place-items:
     padding: 6px 8px;
     height: 24px;
     font-size: 12px;
-    font-family: 'DM Mono', Consolas, Monaco, monospace;
+    font-family: 'Cascadia Mono', Consolas, Monaco, monospace;
     text-transform: uppercase;
     border-radius: 0;
 }

@@ -1,5 +1,5 @@
 export const defaultOptions = {
-    bodyFont: "Barlow, sans-serif",
+    bodyFont: "'Segoe UI', system-ui, -apple-system, sans-serif",
     bodyFontSize: 16,
     lineHeight: 1.6,
     bodyPadding: 20,
@@ -7,7 +7,7 @@ export const defaultOptions = {
     preBackground: "#2d2d2d",
     preBorderRadius: 4,
     preMargin: 8,
-    codeFont: "Menlo, 'SFMono-Regular', Consolas, 'Courier New', monospace",
+    codeFont: "'Cascadia Mono', 'SFMono-Regular', Menlo, Consolas, monospace",
     codeBackground: "#f0f0f0",
     codePadding: 4,
     codeColor: "#1f8f31",
