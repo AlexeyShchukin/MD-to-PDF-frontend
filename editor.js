@@ -1,7 +1,12 @@
 import { defaultOptions, generateCSS } from "./settings.js";
 
 // Change this if статические файлы на другом хосте/порту
-const STATIC_BASE_URL = "http://localhost:8000/static/";
+const isLocalhost = ["localhost", "127.0.0.1"].includes(window.location.hostname);
+const API_BASE = isLocalhost ? "http://localhost:8000" : "https://api.md2pdf.dev";
+const STATIC_BASE_URL = `${API_BASE}/static/`;
+const JOB_STATUS_POLL_MS = 750;
+const JOB_TIMEOUT_MS = 30000;
+const TURNSTILE_SITEKEY = window.TURNSTILE_SITEKEY || "";
 
 // Встроенная тема подсветки для css_override (копия vendor/prism-tomorrow.min.css)
 const PRISM_THEME_CSS = `code[class*=language-],pre[class*=language-]{color:#ccc;background:none;text-shadow:0 1px rgba(0,0,0,.3);font-family:Consolas,Monaco,'Andale Mono','Ubuntu Mono',monospace;font-size:1em;text-align:left;white-space:pre;word-spacing:normal;word-break:normal;word-wrap:normal;line-height:1.5;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-hyphens:none;-moz-hyphens:none;-ms-hyphens:none;hyphens:none}pre[class*=language-]{padding:1em;margin:.5em 0;overflow:auto;border-radius:.3em}:not(pre)>code[class*=language-],pre[class*=language-]{background:#2d2d2d}:not(pre)>code[class*=language-]{padding:.1em;border-radius:.3em;white-space:normal}.token.comment,.token.block-comment,.token.prolog,.token.doctype,.token.cdata{color:#999}.token.punctuation{color:#ccc}.token.tag,.token.attr-name,.token.namespace,.token.deleted{color:#e2777a}.token.function-name{color:#6196cc}.token.boolean,.token.number,.token.function{color:#f08d49}.token.property,.token.class-name,.token.constant,.token.symbol{color:#f8c555}.token.selector,.token.important,.token.atrule,.token.keyword,.token.builtin{color:#cc99cd}.token.string,.token.char,.token.attr-value,.token.regex,.token.variable{color:#7ec699}.token.operator,.token.entity,.token.url{color:#67cdcc}.token.important,.token.bold{font-weight:700}.token.italic{font-style:italic}.token.entity{cursor:help}.token.inserted{color:green}`;
@@ -91,12 +96,15 @@ const openFilePicker = document.getElementById("openFilePicker");
 const mdUrlInput = document.getElementById("mdUrlInput");
 const loadUrlButton = document.getElementById("loadUrl");
 const dropZone = document.getElementById("dropZone");
+const saveButton = document.getElementById("savePdf");
 let editorPlaceholder;
 
 let styleOptions = { ...defaultOptions };
 let lastRenderedHtml = "";
 let codeBlockMarks = [];
 let previewInitialized = false;
+let turnstileWidgetId = null;
+let turnstileReadyPromise = null;
 
 function buildPreviewCss(options) {
     const customCSS = generateCSS(options);
@@ -518,12 +526,137 @@ function setSettingsOpen(isOpen) {
     }
 }
 
+function getTurnstileContainer() {
+    let el = document.getElementById("turnstile-container");
+    if (!el) {
+        el = document.createElement("div");
+        el.id = "turnstile-container";
+        el.style.display = "none";
+        document.body.appendChild(el);
+    }
+    return el;
+}
+
+function waitForTurnstile(timeoutMs = 5000) {
+    if (window.turnstile) return Promise.resolve();
+    if (turnstileReadyPromise) return turnstileReadyPromise;
+    turnstileReadyPromise = new Promise((resolve, reject) => {
+        const deadline = Date.now() + timeoutMs;
+        const check = () => {
+            if (window.turnstile) {
+                resolve();
+            } else if (Date.now() > deadline) {
+                reject(new Error("Turnstile script not available"));
+            } else {
+                setTimeout(check, 50);
+            }
+        };
+        check();
+    });
+    return turnstileReadyPromise;
+}
+
+async function getTurnstileToken() {
+    if (!TURNSTILE_SITEKEY) return null;
+    await waitForTurnstile();
+
+    const container = getTurnstileContainer();
+    return new Promise((resolve, reject) => {
+        const handleError = (msg) => reject(new Error(msg));
+        const renderOptions = {
+            sitekey: TURNSTILE_SITEKEY,
+            size: "invisible",
+            callback: token => resolve(token),
+            "error-callback": () => handleError("Turnstile failed"),
+            "timeout-callback": () => handleError("Turnstile timed out"),
+        };
+
+        if (!turnstileWidgetId) {
+            turnstileWidgetId = window.turnstile.render(container, renderOptions);
+        } else {
+            window.turnstile.reset(turnstileWidgetId);
+        }
+
+        try {
+            window.turnstile.execute(turnstileWidgetId);
+        } catch (err) {
+            reject(err);
+        }
+    });
+}
+
+function getApiKey() {
+    return (window.MD2PDF_API_KEY || localStorage.getItem("md2pdf_api_key") || "").trim();
+}
+
+function setSaveButtonLoading(isLoading) {
+    if (!saveButton) return;
+    saveButton.disabled = isLoading;
+    saveButton.textContent = isLoading ? "Rendering..." : "Save PDF";
+}
+
+async function enqueueRender(payload, token) {
+    const apiKey = getApiKey();
+    const headers = {
+        "Content-Type": "application/json",
+    };
+    if (apiKey) headers["x-api-key"] = apiKey;
+    if (token) headers["x-turnstile-token"] = token;
+
+    const res = await fetch(`${API_BASE}/api/v1/md-to-pdf`, {
+        method: "POST",
+        headers,
+        body: JSON.stringify(payload)
+    });
+    const data = await res.json().catch(() => null);
+    if (!res.ok || !data?.job_id) {
+        throw new Error(data?.detail || data?.error || "Failed to start render");
+    }
+    return data.job_id;
+}
+
+async function pollJobUntilReady(jobId) {
+    const apiKey = getApiKey();
+    const started = Date.now();
+
+    while (true) {
+        const res = await fetch(`${API_BASE}/api/v1/jobs/${jobId}`, {
+            headers: apiKey ? { "x-api-key": apiKey } : {}
+        });
+        const contentType = res.headers.get("content-type") || "";
+
+        if (res.ok && contentType.includes("application/pdf")) {
+            return await res.blob();
+        }
+
+        let data = null;
+        if (contentType.includes("application/json")) {
+            data = await res.json().catch(() => null);
+        }
+
+        if (!res.ok) {
+            throw new Error(data?.detail || data?.error || `Failed to fetch job (${res.status})`);
+        }
+
+        const status = data?.status;
+        if (status === "failed") {
+            throw new Error(data?.error || "Render failed");
+        }
+
+        if (Date.now() - started > JOB_TIMEOUT_MS) {
+            throw new Error("Render timed out. Please try again.");
+        }
+
+        await new Promise(resolve => setTimeout(resolve, JOB_STATUS_POLL_MS));
+    }
+}
+
 hydrateSettings();
 easyMDE.codemirror.on("change", handleEditorChange);
 handleEditorChange();
 wireImportControls();
 
-document.getElementById("savePdf").addEventListener("click", async () => {
+saveButton?.addEventListener("click", async () => {
     const md = easyMDE.value() || "";
     const cssOverride = buildCssOverride(styleOptions);
     const payload = {
@@ -532,18 +665,22 @@ document.getElementById("savePdf").addEventListener("click", async () => {
         base_url: STATIC_BASE_URL
     };
 
-    const res = await fetch("http://localhost:8000/api/v1/md-to-pdf", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload)
-    });
-
-    const blob = await res.blob();
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = "document.pdf";
-    a.click();
+    setSaveButtonLoading(true);
+    try {
+        const token = await getTurnstileToken();
+        const jobId = await enqueueRender(payload, token);
+        const blob = await pollJobUntilReady(jobId);
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = "document.pdf";
+        a.click();
+    } catch (err) {
+        console.error("Failed to render PDF", err);
+        alert(err?.message || "Failed to render PDF. Please try again.");
+    } finally {
+        setSaveButtonLoading(false);
+    }
 });
 
 toggleSettings.addEventListener("click", () => {
