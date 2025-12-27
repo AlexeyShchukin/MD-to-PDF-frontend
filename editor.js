@@ -582,10 +582,6 @@ async function getTurnstileToken() {
     return turnstileInFlight;
 }
 
-function getApiKey() {
-    return (window.MD2PDF_API_KEY || localStorage.getItem("md2pdf_api_key") || "").trim();
-}
-
 function setSaveButtonLoading(isLoading) {
     if (!saveButton) return;
     saveButton.disabled = isLoading;
@@ -593,11 +589,9 @@ function setSaveButtonLoading(isLoading) {
 }
 
 async function enqueueRender(payload, token) {
-    const apiKey = getApiKey();
     const headers = {
         "Content-Type": "application/json",
     };
-    if (apiKey) headers["x-api-key"] = apiKey;
     if (token) headers["x-turnstile-token"] = token;
 
     const res = await fetch(`${API_BASE}/api/v1/md-to-pdf`, {
@@ -605,21 +599,29 @@ async function enqueueRender(payload, token) {
         headers,
         body: JSON.stringify(payload)
     });
-    const data = await res.json().catch(() => null);
-    if (!res.ok || !data?.job_id) {
+    const contentType = res.headers.get("content-type") || "";
+
+    // API may return PDF directly (without queue).
+    if (res.ok && contentType.includes("application/pdf")) {
+        const blob = await res.blob();
+        return { blob, jobId: null };
+    }
+
+    const data = contentType.includes("application/json") ? await res.json().catch(() => null) : null;
+    if (!res.ok) {
         throw new Error(data?.detail || data?.error || "Failed to start render");
     }
-    return data.job_id;
+    if (data?.job_id) {
+        return { blob: null, jobId: data.job_id };
+    }
+    throw new Error("Failed to start render");
 }
 
 async function pollJobUntilReady(jobId) {
-    const apiKey = getApiKey();
     const started = Date.now();
 
     while (true) {
-        const res = await fetch(`${API_BASE}/api/v1/jobs/${jobId}`, {
-            headers: apiKey ? { "x-api-key": apiKey } : {}
-        });
+        const res = await fetch(`${API_BASE}/api/v1/jobs/${jobId}`);
         const contentType = res.headers.get("content-type") || "";
 
         if (res.ok && contentType.includes("application/pdf")) {
@@ -665,8 +667,8 @@ saveButton?.addEventListener("click", async () => {
     setSaveButtonLoading(true);
     try {
         const token = await getTurnstileToken();
-        const jobId = await enqueueRender(payload, token);
-        const blob = await pollJobUntilReady(jobId);
+        const { blob: directBlob, jobId } = await enqueueRender(payload, token);
+        const blob = directBlob || await pollJobUntilReady(jobId);
         const url = URL.createObjectURL(blob);
         const a = document.createElement("a");
         a.href = url;
