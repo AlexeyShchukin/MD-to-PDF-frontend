@@ -105,6 +105,7 @@ let codeBlockMarks = [];
 let previewInitialized = false;
 let turnstileWidgetId = null;
 let turnstileReadyPromise = null;
+let turnstileExecuting = false;
 
 function buildPreviewCss(options) {
     const customCSS = generateCSS(options);
@@ -547,6 +548,14 @@ async function getTurnstileToken() {
 
     const container = getTurnstileContainer();
     return new Promise((resolve, reject) => {
+        if (turnstileExecuting && turnstileWidgetId) {
+            try {
+                window.turnstile.reset(turnstileWidgetId);
+            } catch {
+                /* ignore reset errors */
+            }
+        }
+        turnstileExecuting = true;
         const handleError = (msg) => reject(new Error(msg));
         const renderOptions = {
             sitekey: TURNSTILE_SITEKEY,
@@ -566,6 +575,8 @@ async function getTurnstileToken() {
             window.turnstile.execute(turnstileWidgetId);
         } catch (err) {
             reject(err);
+        } finally {
+            turnstileExecuting = false;
         }
     });
 }
