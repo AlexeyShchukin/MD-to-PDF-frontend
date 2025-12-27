@@ -105,7 +105,7 @@ let codeBlockMarks = [];
 let previewInitialized = false;
 let turnstileWidgetId = null;
 let turnstileReadyPromise = null;
-let turnstileExecuting = false;
+let turnstileInFlight = null;
 
 function buildPreviewCss(options) {
     const customCSS = generateCSS(options);
@@ -544,41 +544,42 @@ function waitForTurnstile(timeoutMs = 5000) {
 
 async function getTurnstileToken() {
     if (!TURNSTILE_SITEKEY) return null;
+    if (turnstileInFlight) return turnstileInFlight;
     await waitForTurnstile();
 
     const container = getTurnstileContainer();
-    return new Promise((resolve, reject) => {
-        if (turnstileExecuting && turnstileWidgetId) {
-            try {
-                window.turnstile.reset(turnstileWidgetId);
-            } catch {
-                /* ignore reset errors */
-            }
-        }
-        turnstileExecuting = true;
-        const handleError = (msg) => reject(new Error(msg));
+    turnstileInFlight = new Promise((resolve, reject) => {
+        const cleanup = () => {
+            turnstileInFlight = null;
+        };
+        const handleError = (msg) => {
+            cleanup();
+            reject(new Error(msg));
+        };
         const renderOptions = {
             sitekey: TURNSTILE_SITEKEY,
             size: "invisible",
-            callback: token => resolve(token),
+            callback: token => {
+                cleanup();
+                resolve(token);
+            },
             "error-callback": () => handleError("Turnstile failed"),
             "timeout-callback": () => handleError("Turnstile timed out"),
         };
 
-        if (!turnstileWidgetId) {
-            turnstileWidgetId = window.turnstile.render(container, renderOptions);
-        } else {
-            window.turnstile.reset(turnstileWidgetId);
-        }
-
         try {
+            if (!turnstileWidgetId) {
+                turnstileWidgetId = window.turnstile.render(container, renderOptions);
+            } else {
+                window.turnstile.reset(turnstileWidgetId);
+            }
             window.turnstile.execute(turnstileWidgetId);
         } catch (err) {
+            cleanup();
             reject(err);
-        } finally {
-            turnstileExecuting = false;
         }
     });
+    return turnstileInFlight;
 }
 
 function getApiKey() {
