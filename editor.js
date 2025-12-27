@@ -398,21 +398,6 @@ function updatePreview() {
     const assetBase = window.location.origin;
     const prismLanguageScripts = `
   <script src="/vendor/prism.min.js"></script>
-  <script src="/vendor/prism-langs/prism-markup.min.js"></script>
-  <script src="/vendor/prism-langs/prism-bash.min.js"></script>
-  <script src="/vendor/prism-langs/prism-json.min.js"></script>
-  <script src="/vendor/prism-langs/prism-javascript.min.js"></script>
-  <script src="/vendor/prism-langs/prism-typescript.min.js"></script>
-  <script src="/vendor/prism-langs/prism-python.min.js"></script>
-  <script src="/vendor/prism-langs/prism-markdown.min.js"></script>
-  <script src="/vendor/prism-langs/prism-yaml.min.js"></script>
-  <script src="/vendor/prism-langs/prism-go.min.js"></script>
-  <script src="/vendor/prism-langs/prism-css.min.js"></script>
-  <script src="/vendor/prism-langs/prism-cpp.min.js"></script>
-  <script src="/vendor/prism-langs/prism-c.min.js"></script>
-  <script src="/vendor/prism-langs/prism-java.min.js"></script>
-  <script src="/vendor/prism-langs/prism-rust.min.js"></script>
-  <script src="/vendor/prism-langs/prism-sql.min.js"></script>
   <script>Prism.highlightAll();</script>
 `;
 
