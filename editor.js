@@ -679,10 +679,19 @@ wireImportControls();
     if (!isAllowedMdUrl(normalizedUrl)) return;
 
     try {
-        const res = await fetch(normalizedUrl);
-        if (!res.ok) throw new Error("Fetch failed");
-        const text = await res.text();
-        loadMdContent(text);
+        const res = await fetch(normalizedUrl); // ✅
+        if (!res.ok) throw new Error("Fetch failed"); // ✅
+
+        const contentType = res.headers.get("content-type") || ""; // ✅
+        if (
+            !contentType.includes("text/plain") &&
+            !contentType.includes("text/markdown")
+        ) {
+            throw new Error("Not a markdown file"); // ✅
+        }
+
+        const text = await res.text(); // ✅
+        loadMdContent(text); // ✅
 
         history.replaceState(null, "", "/");
     } catch (err) {
