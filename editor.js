@@ -182,6 +182,22 @@ function normalizeMdUrl(url) {
     }
 }
 
+function getMarkdownUrlFromLocation() { // ✅
+    const params = new URLSearchParams(window.location.search);
+    const direct = params.get("url");
+    if (direct) return direct;
+
+    if (window.location.hash) {
+        const hash = window.location.hash.replace(/^#\/?/, "");
+        const queryIndex = hash.indexOf("?");
+        if (queryIndex !== -1) {
+            const hashParams = new URLSearchParams(hash.slice(queryIndex + 1));
+            return hashParams.get("url");
+        }
+    }
+    return null;
+}
+
 function isAllowedMdUrl(url) {
     try {
         const parsed = new URL(url);
@@ -654,6 +670,26 @@ hydrateSettings();
 easyMDE.codemirror.on("change", handleEditorChange);
 handleEditorChange();
 wireImportControls();
+
+(async function autoLoadMarkdownFromUrl() {
+    const url = getMarkdownUrlFromLocation();
+    if (!url) return;
+
+    const normalizedUrl = normalizeMdUrl(url);
+    if (!isAllowedMdUrl(normalizedUrl)) return;
+
+    try {
+        const res = await fetch(normalizedUrl);
+        if (!res.ok) throw new Error("Fetch failed");
+        const text = await res.text();
+        loadMdContent(text);
+
+        history.replaceState(null, "", "/");
+    } catch (err) {
+        console.error("Auto-load markdown failed", err);
+        alert("Auto-load markdown failed");
+    }
+})();
 
 saveButton?.addEventListener("click", async () => {
     const md = easyMDE.value() || "";
