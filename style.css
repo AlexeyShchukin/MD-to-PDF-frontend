@@ -45,17 +45,7 @@ body {
 }
 
 .brand { display: flex; align-items: center; gap: 12px; }
-.brand-icon {
-    width: 44px;
-    height: 44px;
-    border-radius: 12px;
-    background: linear-gradient(135deg, #0d82c7, #0fa9db);
-    display: grid;
-    place-items: center;
-    font-weight: 700;
-    color: #04101b;
-    letter-spacing: 1px;
-}
+
 .eyebrow {
     text-transform: uppercase;
     letter-spacing: 0.04em;
