@@ -53,7 +53,13 @@ body {
     color: var(--muted);
     margin: 0;
 }
-h1 { margin: 2px 0 0; font-size: 24px; color: var(--text); }
+h1 {
+    margin: 0;                 /* ✅ убираем лишний отступ сверху */
+    font-size: 24px;
+    color: var(--text);
+    line-height: 1.1;          /* ✅ убираем пустоту внутри строки */
+    transform: translateY(-2px); /* ✅ поднимаем заголовок выше */
+}
 h3 { margin: 0; color: var(--text); }
 h4 { margin: 0; color: var(--text); }
 .muted { margin: 0; color: var(--muted); font-size: 13px; }
