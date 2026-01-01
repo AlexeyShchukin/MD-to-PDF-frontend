@@ -6,7 +6,7 @@ const API_BASE = isLocalhost ? "http://localhost:8000" : "https://api.md2pdf.dev
 const STATIC_BASE_URL = `${API_BASE}/static/`;
 const JOB_STATUS_POLL_MS = 750;
 const JOB_TIMEOUT_MS = 30000;
-const TURNSTILE_SITEKEY = window.TURNSTILE_SITEKEY || "";
+//const TURNSTILE_SITEKEY = window.TURNSTILE_SITEKEY || "";
 
 // Встроенная тема подсветки для css_override (копия vendor/prism-tomorrow.min.css)
 const PRISM_THEME_CSS = `code[class*=language-],pre[class*=language-]{color:#ccc;background:none;text-shadow:0 1px rgba(0,0,0,.3);font-family:Consolas,Monaco,'Andale Mono','Ubuntu Mono',monospace;font-size:1em;text-align:left;white-space:pre;word-spacing:normal;word-break:normal;word-wrap:normal;line-height:1.5;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-hyphens:none;-moz-hyphens:none;-ms-hyphens:none;hyphens:none}pre[class*=language-]{padding:1em;margin:.5em 0;overflow:auto;border-radius:.3em}:not(pre)>code[class*=language-],pre[class*=language-]{background:#2d2d2d}:not(pre)>code[class*=language-]{padding:.1em;border-radius:.3em;white-space:normal}.token.comment,.token.block-comment,.token.prolog,.token.doctype,.token.cdata{color:#999}.token.punctuation{color:#ccc}.token.tag,.token.attr-name,.token.namespace,.token.deleted{color:#e2777a}.token.function-name{color:#6196cc}.token.boolean,.token.number,.token.function{color:#f08d49}.token.property,.token.class-name,.token.constant,.token.symbol{color:#f8c555}.token.selector,.token.important,.token.atrule,.token.keyword,.token.builtin{color:#cc99cd}.token.string,.token.char,.token.attr-value,.token.regex,.token.variable{color:#7ec699}.token.operator,.token.entity,.token.url{color:#67cdcc}.token.important,.token.bold{font-weight:700}.token.italic{font-style:italic}.token.entity{cursor:help}.token.inserted{color:green}`;
@@ -103,9 +103,9 @@ let styleOptions = { ...defaultOptions };
 let lastRenderedHtml = "";
 let codeBlockMarks = [];
 let previewInitialized = false;
-let turnstileWidgetId = null;
-let turnstileReadyPromise = null;
-let turnstileInFlight = null;
+//let turnstileWidgetId = null;
+//let turnstileReadyPromise = null;
+//let turnstileInFlight = null;
 
 function buildPreviewCss(options) {
     const customCSS = generateCSS(options);
@@ -528,75 +528,75 @@ function setSettingsOpen(isOpen) {
     }
 }
 
-function getTurnstileContainer() {
-    let el = document.getElementById("turnstile-container");
-    if (!el) {
-        el = document.createElement("div");
-        el.id = "turnstile-container";
-        el.style.display = "none";
-        document.body.appendChild(el);
-    }
-    return el;
-}
+//function getTurnstileContainer() {
+//    let el = document.getElementById("turnstile-container");
+//    if (!el) {
+//        el = document.createElement("div");
+//        el.id = "turnstile-container";
+//        el.style.display = "none";
+//        document.body.appendChild(el);
+//    }
+//    return el;
+//}
 
-function waitForTurnstile(timeoutMs = 5000) {
-    if (window.turnstile) return Promise.resolve();
-    if (turnstileReadyPromise) return turnstileReadyPromise;
-    turnstileReadyPromise = new Promise((resolve, reject) => {
-        const deadline = Date.now() + timeoutMs;
-        const check = () => {
-            if (window.turnstile) {
-                resolve();
-            } else if (Date.now() > deadline) {
-                reject(new Error("Turnstile script not available"));
-            } else {
-                setTimeout(check, 50);
-            }
-        };
-        check();
-    });
-    return turnstileReadyPromise;
-}
-
-async function getTurnstileToken() {
-    if (!TURNSTILE_SITEKEY) return null;
-    if (turnstileInFlight) return turnstileInFlight;
-    await waitForTurnstile();
-
-    const container = getTurnstileContainer();
-    turnstileInFlight = new Promise((resolve, reject) => {
-        const cleanup = () => {
-            turnstileInFlight = null;
-        };
-        const handleError = (msg) => {
-            cleanup();
-            reject(new Error(msg));
-        };
-        const renderOptions = {
-            sitekey: TURNSTILE_SITEKEY,
-            size: "invisible",
-            callback: token => {
-                cleanup();
-                resolve(token);
-            },
-            "error-callback": () => handleError("Turnstile failed"),
-            "timeout-callback": () => handleError("Turnstile timed out"),
-        };
-
-        try {
-            if (!turnstileWidgetId) {
-                turnstileWidgetId = window.turnstile.render(container, renderOptions);
-            } else {
-                window.turnstile.reset(turnstileWidgetId);
-            }
-            window.turnstile.execute(turnstileWidgetId);
-        } catch (err) {
-            cleanup();
-            reject(err);
-        }
-    });
-    return turnstileInFlight;
-}
+//function waitForTurnstile(timeoutMs = 5000) {
+//    if (window.turnstile) return Promise.resolve();
+//    if (turnstileReadyPromise) return turnstileReadyPromise;
+//    turnstileReadyPromise = new Promise((resolve, reject) => {
+//        const deadline = Date.now() + timeoutMs;
+//        const check = () => {
+//            if (window.turnstile) {
+//                resolve();
+//            } else if (Date.now() > deadline) {
+//                reject(new Error("Turnstile script not available"));
+//            } else {
+//                setTimeout(check, 50);
+//            }
+//        };
+//        check();
+//    });
+//    return turnstileReadyPromise;
+//}
+//
+//async function getTurnstileToken() {
+//    if (!TURNSTILE_SITEKEY) return null;
+//    if (turnstileInFlight) return turnstileInFlight;
+//    await waitForTurnstile();
+//
+//    const container = getTurnstileContainer();
+//    turnstileInFlight = new Promise((resolve, reject) => {
+//        const cleanup = () => {
+//            turnstileInFlight = null;
+//        };
+//        const handleError = (msg) => {
+//            cleanup();
+//            reject(new Error(msg));
+//        };
+//        const renderOptions = {
+//            sitekey: TURNSTILE_SITEKEY,
+//            size: "invisible",
+//            callback: token => {
+//                cleanup();
+//                resolve(token);
+//            },
+//            "error-callback": () => handleError("Turnstile failed"),
+//            "timeout-callback": () => handleError("Turnstile timed out"),
+//        };
+//
+//        try {
+//            if (!turnstileWidgetId) {
+//                turnstileWidgetId = window.turnstile.render(container, renderOptions);
+//            } else {
+//                window.turnstile.reset(turnstileWidgetId);
+//            }
+//            window.turnstile.execute(turnstileWidgetId);
+//        } catch (err) {
+//            cleanup();
+//            reject(err);
+//        }
+//    });
+//    return turnstileInFlight;
+//}
 
 function setSaveButtonLoading(isLoading) {
     if (!saveButton) return;
@@ -608,7 +608,7 @@ async function enqueueRender(payload, token) {
     const headers = {
         "Content-Type": "application/json",
     };
-    if (token) headers["x-turnstile-token"] = token;
+//    if (token) headers["x-turnstile-token"] = token;
 
     const res = await fetch(`${API_BASE}/api/v1/md-to-pdf`, {
         method: "POST",
@@ -702,8 +702,9 @@ saveButton?.addEventListener("click", async () => {
 
     setSaveButtonLoading(true);
     try {
-        const token = await getTurnstileToken();
-        const { blob: directBlob, jobId } = await enqueueRender(payload, token);
+//        const token = await getTurnstileToken();
+//        const { blob: directBlob, jobId } = await enqueueRender(payload, token);
+        const { blob: directBlob, jobId } = await enqueueRender(payload);
         const blob = directBlob || await pollJobUntilReady(jobId);
         const url = URL.createObjectURL(blob);
         const a = document.createElement("a");
