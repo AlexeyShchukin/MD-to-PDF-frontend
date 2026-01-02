@@ -1,8 +1,13 @@
 import { defaultOptions, generateCSS } from "./settings.js";
 
-// Change this if статические файлы на другом хосте/порту
 const isLocalhost = ["localhost", "127.0.0.1"].includes(window.location.hostname);
-const API_BASE = isLocalhost ? "http://localhost:8000" : "https://api.md2pdf.dev";
+const isStagingFrontend = window.location.pathname.startsWith("/staging");
+
+const API_BASE = isLocalhost
+  ? "http://localhost:8000"
+  : isStagingFrontend
+    ? "https://md2pdf-api-staging.fly.dev"
+    : "https://api.md2pdf.dev";
 const STATIC_BASE_URL = `${API_BASE}/static/`;
 const JOB_STATUS_POLL_MS = 750;
 const JOB_TIMEOUT_MS = 30000;
