@@ -1,0 +1,71 @@
+name: Deploy GitHub Pages
+
+on:
+  push:
+    branches:
+      - main
+      - staging
+  workflow_dispatch: {}
+
+permissions:
+  contents: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Prepare static site
+        run: |
+          set -euo pipefail
+          DEPLOY_DIR="site"
+          rm -rf "${DEPLOY_DIR}"
+          mkdir -p "${DEPLOY_DIR}"
+          rsync -av --delete \
+            --exclude '.git' \
+            --exclude '.github' \
+            --exclude '.idea' \
+            --exclude 'node_modules' \
+            --exclude '.DS_Store' \
+            ./ "${DEPLOY_DIR}/"
+
+      - name: Deploy to gh-pages
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+          DEPLOY_DIR="site"
+
+          git fetch origin gh-pages || true
+          if git show-ref --quiet refs/remotes/origin/gh-pages; then
+            git checkout -B gh-pages origin/gh-pages
+          else
+            git checkout --orphan gh-pages
+            git rm -rf .
+          fi
+
+          if [ -f CNAME ]; then cp CNAME /tmp/CNAME; fi
+
+          if [ "${GITHUB_REF_NAME}" = "staging" ]; then
+            rm -rf staging
+            mkdir -p staging
+            cp -R "${DEPLOY_DIR}/." "staging/"
+          else
+            find . -maxdepth 1 ! -name '.' ! -name '.git' ! -name 'staging' ! -name 'CNAME' -exec rm -rf {} +
+            cp -R "${DEPLOY_DIR}/." "."
+          fi
+
+          touch .nojekyll
+          if [ -f /tmp/CNAME ]; then mv /tmp/CNAME CNAME; fi
+
+          git add -A
+          git commit -m "deploy: ${GITHUB_REF_NAME}" || exit 0
+          git push origin gh-pages
