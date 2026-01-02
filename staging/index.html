@@ -1,0 +1,269 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>MD to PDF</title>
+<link rel="icon" type="image/png" href="/images/icon32-v2.png">
+<link rel="stylesheet" href="style.css">
+<link rel="stylesheet" href="/vendor/easymde.min.css">
+<link rel="stylesheet" href="/vendor/prism-tomorrow.min.css">
+</head>
+<body>
+<div class="page">
+    <header class="topbar">
+        <div class="brand">
+            <div class="brand-icon">
+            <img src="images/icon48.png" alt="MD to PDF">
+            </div>
+            <div>
+                <p class="eyebrow"></p>
+                <h1>Markdown to PDF</h1>
+            </div>
+        </div>
+        <div class="top-actions">
+            <button class="ghost" id="toggleSettings" type="button">Preview settings</button>
+            <button class="primary" id="savePdf" type="button">Save PDF</button>
+        </div>
+    </header>
+
+    <div class="workbench">
+        <section class="panel editor-panel">
+            <div class="panel-header">
+                <div>
+                    <h3>Editor</h3>
+                </div>
+                <p class="muted">Live updates while you type.</p>
+            </div>
+            <div class="panel-body">
+                <div class="import-bar">
+                    <input class="hidden-file-input" type="file" id="mdFileInput" accept=".md,.markdown,.mdown,.txt,text/markdown,text/plain">
+                    <button type="button" class="file-button" id="openFilePicker">Upload .md</button>
+                    <input type="url" id="mdUrlInput" placeholder="Paste .md URL">
+                    <button id="loadUrl" type="button">Load URL</button>
+                </div>
+                <textarea id="editor"></textarea>
+            </div>
+        </section>
+
+        <section class="panel preview-panel">
+            <div class="panel-header">
+                <div>
+                    <h3>Preview</h3>
+                </div>
+                <p class="muted">Styled output with your settings.</p>
+            </div>
+            <div class="panel-body">
+                <iframe id="preview" title="Preview"></iframe>
+            </div>
+        </section>
+    </div>
+
+    <aside class="settings-drawer" id="settingsDrawer" aria-label="Preview settings">
+        <div class="drawer-header">
+            <div>
+                <p class="eyebrow">Preview controls</p>
+                <h4>Document theme</h4>
+            </div>
+            <button class="ghost icon" id="closeSettings" aria-label="Close settings">X</button>
+        </div>
+
+        <div class="settings-grid">
+            <details open>
+                <summary>Body</summary>
+                <label>Font family
+                    <select class="style-setting" data-name="bodyFont">
+                        <option value="'Segoe UI', system-ui, -apple-system, sans-serif">Segoe UI</option>
+                        <option value="Arial, sans-serif">Arial</option>
+                        <option value="Georgia, serif">Georgia</option>
+                        <option value="'Times New Roman', serif">Times New Roman</option>
+                    </select>
+                </label>
+                <label>Font size (px)
+                    <input type="number" class="style-setting" data-name="bodyFontSize" value="16">
+                </label>
+                <label>Line height
+                    <input type="range" min="1" max="2" step="0.05" class="style-setting" data-name="lineHeight" data-type="number" value="1.6">
+                </label>
+                <label>Padding (px)
+                    <input type="number" class="style-setting" data-name="bodyPadding" value="20">
+                </label>
+            </details>
+
+            <details open>
+                <summary>Code and blocks</summary>
+                <label>Code font
+                    <select class="style-setting" data-name="codeFont">
+                        <option value="'Cascadia Mono', 'SFMono-Regular', Menlo, Consolas, monospace">Cascadia/Consolas</option>
+                        <option value="Menlo, 'SFMono-Regular', Consolas, 'Cascadia Mono', monospace">Menlo</option>
+                        <option value="'Courier New', Consolas, monospace">Courier New</option>
+                    </select>
+                </label>
+                <label class="color-setting">Inline/code background
+                    <div class="color-control">
+                        <input type="color" class="style-setting color-swatch" data-name="codeBackground" value="#f0f0f0">
+                        <input type="text" class="style-setting color-hex" data-name="codeBackground" value="#f0f0f0">
+                    </div>
+                </label>
+                <label class="color-setting">Inline/code color
+                    <div class="color-control">
+                        <input type="color" class="style-setting color-swatch" data-name="codeColor" value="#e83e8c">
+                        <input type="text" class="style-setting color-hex" data-name="codeColor" value="#e83e8c">
+                    </div>
+                </label>
+                <label>Padding (px)
+                    <input type="number" class="style-setting" data-name="codePadding" value="4">
+                </label>
+                <label>Border radius (px)
+                    <input type="number" class="style-setting" data-name="codeBorderRadius" value="3">
+                </label>
+                <div class="setting-divider"></div>
+                <label class="color-setting">Multiline code background
+                    <div class="color-control">
+                        <input type="color" class="style-setting color-swatch" data-name="preBackground" value="#2d2d2d">
+                        <input type="text" class="style-setting color-hex" data-name="preBackground" value="#2d2d2d">
+                    </div>
+                </label>
+                <label>Multiline code radius (px)
+                    <input type="number" class="style-setting" data-name="preBorderRadius" value="4">
+                </label>
+                <label>Multiline code margin (px)
+                    <input type="number" class="style-setting" data-name="preMargin" value="8">
+                </label>
+            </details>
+
+            <details>
+                <summary>Tables</summary>
+                <label>Border collapse
+                    <select class="style-setting" data-name="tableBorderCollapse">
+                        <option value="collapse">Collapse</option>
+                        <option value="separate">Separate</option>
+                    </select>
+                </label>
+                <label>Width (%)
+                    <input type="range" min="50" max="100" step="1" class="style-setting" data-name="tableWidth" data-type="number" value="100">
+                </label>
+                <label>Margin (px)
+                    <input type="number" class="style-setting" data-name="tableMargin" value="16">
+                </label>
+                <label>Header border
+                    <select class="style-setting" data-name="thBorder">
+                        <option value="1px solid #ddd">1px solid #ddd</option>
+                        <option value="1px solid #1f2937">1px solid #1f2937</option>
+                        <option value="none">None</option>
+                    </select>
+                </label>
+                <label>Header padding (px)
+                    <input type="number" class="style-setting" data-name="thPadding" value="8">
+                </label>
+                <label class="color-setting">Header background
+                    <div class="color-control">
+                        <input type="color" class="style-setting color-swatch" data-name="thBackgroundColor" value="#f4f4f4">
+                        <input type="text" class="style-setting color-hex" data-name="thBackgroundColor" value="#f4f4f4">
+                    </div>
+                </label>
+                <label>Cell border
+                    <select class="style-setting" data-name="tdBorder">
+                        <option value="1px solid #ddd">1px solid #ddd</option>
+                        <option value="1px solid #1f2937">1px solid #1f2937</option>
+                        <option value="none">None</option>
+                    </select>
+                </label>
+                <label>Cell padding (px)
+                    <input type="number" class="style-setting" data-name="tdPadding" value="8">
+                </label>
+            </details>
+
+            <details>
+                <summary>Quotes and media</summary>
+                <label>Quote border
+                    <select class="style-setting" data-name="blockquoteBorderLeft">
+                        <option value="4px solid #ddd">4px solid #ddd</option>
+                        <option value="4px solid #94a3b8">4px solid #94a3b8</option>
+                        <option value="none">None</option>
+                    </select>
+                </label>
+                <label>Quote padding (px)
+                    <input type="number" class="style-setting" data-name="blockquotePaddingLeft" value="16">
+                </label>
+                <label>Quote indent (px)
+                    <input type="number" class="style-setting" data-name="blockquoteMarginLeft" value="0">
+                </label>
+                <label class="color-setting">Quote color
+                    <div class="color-control">
+                        <input type="color" class="style-setting color-swatch" data-name="blockquoteColor" value="#666666">
+                        <input type="text" class="style-setting color-hex" data-name="blockquoteColor" value="#666666">
+                    </div>
+                </label>
+                <label>Image max width (%)
+                    <input type="range" min="40" max="100" step="5" class="style-setting" data-name="imgMaxWidth" data-type="number" value="100">
+                </label>
+            </details>
+
+            <details>
+                <summary>Headings</summary>
+                <label>H1 size (em)
+                    <input type="range" min="1.4" max="2.8" step="0.1" class="style-setting" data-name="h1Size" data-type="number" value="2.2">
+                </label>
+                <label class="color-setting">H1 color
+                    <div class="color-control">
+                        <input type="color" class="style-setting color-swatch" data-name="h1Color" value="#2c3e50">
+                        <input type="text" class="style-setting color-hex" data-name="h1Color" value="#2c3e50">
+                    </div>
+                </label>
+                <label>H1 margin top (px)
+                    <input type="number" class="style-setting" data-name="h1MarginTop" value="0">
+                </label>
+                </label>
+                <label>H1 margin bottom (px)
+                    <input type="number" class="style-setting" data-name="h1MarginBottom" value="24">
+                </label>
+                <label>H1 divider
+                    <select class="style-setting" data-name="h1BorderBottom">
+                        <option value="2px solid #eee">Line</option>
+                        <option value="1px solid #d1d5db">Thin line</option>
+                        <option value="none">None</option>
+                    </select>
+                <div class="setting-divider"></div>
+                <label>H2 size (em)
+                    <input type="range" min="1.2" max="2.2" step="0.1" class="style-setting" data-name="h2Size" data-type="number" value="1.8">
+                </label>
+                <label class="color-setting">H2 color
+                    <div class="color-control">
+                        <input type="color" class="style-setting color-swatch" data-name="h2Color" value="#34495e">
+                        <input type="text" class="style-setting color-hex" data-name="h2Color" value="#34495e">
+                    </div>
+                </label>
+                <label>H2 margin top (px)
+                    <input type="number" class="style-setting" data-name="h2MarginTop" value="0">
+                </label>
+                <label>H2 margin bottom (px)
+                    <input type="number" class="style-setting" data-name="h2MarginBottom" value="24">
+                </label>
+                <div class="setting-divider"></div>
+                <label>H3 size (em)
+                    <input type="range" min="1" max="1.8" step="0.05" class="style-setting" data-name="h3Size" data-type="number" value="1.4">
+                </label>
+                <label class="color-setting">H3 color
+                    <div class="color-control">
+                        <input type="color" class="style-setting color-swatch" data-name="h3Color" value="#455a64">
+                        <input type="text" class="style-setting color-hex" data-name="h3Color" value="#455a64">
+                    </div>
+                </label>
+                <label>H3 margin top (px)
+                    <input type="number" class="style-setting" data-name="h3MarginTop" value="0">
+                </label>
+                <label>H3 margin bottom (px)
+                    <input type="number" class="style-setting" data-name="h3MarginBottom" value="16">
+                </label>
+            </details>
+        </div>
+    </aside>
+</div>
+
+
+<script src="/vendor/easymde.min.js" defer></script>
+<script src="/vendor/marked.min.js" defer></script>
+<script src="/vendor/prism.min.js" defer></script>
+<script type="module" src="editor.js"></script>
+</body>
+</html>
