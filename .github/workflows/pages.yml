@@ -25,7 +25,7 @@ jobs:
       - name: Prepare static site
         run: |
           set -euo pipefail
-          DEPLOY_DIR="site"
+          DEPLOY_DIR="/tmp/site"
           rm -rf "${DEPLOY_DIR}"
           mkdir -p "${DEPLOY_DIR}"
           rsync -av --delete \
@@ -42,7 +42,7 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
 
-          DEPLOY_DIR="site"
+          DEPLOY_DIR="/tmp/site"
 
           git fetch origin gh-pages || true
           if git show-ref --quiet refs/remotes/origin/gh-pages; then
