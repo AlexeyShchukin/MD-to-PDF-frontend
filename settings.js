@@ -1,5 +1,5 @@
 export const defaultOptions = {
-    bodyFont: "'Segoe UI', system-ui, -apple-system, sans-serif",
+    bodyFont: "Arial, sans-serif",
     bodyFontSize: 16,
     lineHeight: 1.6,
     bodyPadding: 20,
