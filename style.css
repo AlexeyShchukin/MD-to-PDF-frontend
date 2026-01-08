@@ -185,6 +185,74 @@ button.icon { width: 34px; height: 34px; padding: 0; display: grid; place-items:
     display: none;
 }
 
+.editor-panel .editor-statusbar {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 10px;
+    text-align: right;
+    background: none;
+    border: none;
+    padding: 4px 10px;
+}
+
+.editor-panel .editor-statusbar .rating-container {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: var(--text);
+    font-weight: 600;
+    margin-right: auto;
+}
+
+.editor-panel .editor-statusbar > * {
+    position: relative;
+    top: 3px; /* tweak vertically if needed */
+}
+
+.editor-panel .editor-statusbar .rating-label {
+    font-size: 16px;
+    line-height: 1;
+}
+
+.editor-panel .editor-statusbar .full-stars {
+    display: flex;
+    align-items: center;
+}
+
+.editor-panel .editor-statusbar .rating-group {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.editor-panel .editor-statusbar .rating-star {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+}
+
+.editor-panel .editor-statusbar .rating-star svg {
+    margin: 0;
+    height: 24px;
+    width: 24px;
+    fill: #cccccc;
+    line-height: 1;
+    vertical-align: middle;
+    transition: transform 0.12s ease, fill 0.12s ease;
+}
+
+.editor-panel .editor-statusbar .rating-star.active svg {
+    fill: #ffc711;
+}
+
+.editor-panel .editor-statusbar .rating-star:hover svg,
+.editor-panel .editor-statusbar .rating-star:focus-visible svg {
+    transform: translateY(-1px) scale(1.05);
+    fill: #ffc711;
+}
+
 .editor-panel .panel-body {
     padding: 12px;
     display: flex;
