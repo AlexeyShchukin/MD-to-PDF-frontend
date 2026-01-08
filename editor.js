@@ -8,6 +8,9 @@ const API_BASE = isLocalhost
   : isStagingFrontend
     ? "https://md2pdf-api-staging.fly.dev"
     : "https://api.md2pdf.dev";
+const CHROME_WEB_STORE_REVIEW_URL = "https://chromewebstore.google.com/detail/md-to-pdf/pmobnjjamclghdpmmjjoeopeopminfag/reviews";
+const FEEDBACK_FORM_URL = "https://docs.google.com/forms/d/e/1FAIpQLSe-LeHz5USPGkK0GL9GBu8cUFgYyS7aHi1KrFEBulm1-O24cg/viewform?usp=header";
+const STAR_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"/></svg>`;
 const STATIC_BASE_URL = `${API_BASE}/static/`;
 const JOB_STATUS_POLL_MS = 750;
 const JOB_TIMEOUT_MS = 30000;
@@ -229,6 +232,63 @@ function updateEditorPlaceholder() {
     if (!editorPlaceholder) return;
     const hasText = Boolean((easyMDE.value() || "").length);
     editorPlaceholder.classList.toggle("hidden", hasText);
+}
+
+function insertRatingWidget() {
+    const statusBar = document.querySelector(".editor-panel .editor-statusbar");
+    if (!statusBar || statusBar.querySelector(".rating-container")) return;
+
+    const stars = [1, 2, 3, 4, 5].map(value => {
+        const target = value >= 4 ? CHROME_WEB_STORE_REVIEW_URL : FEEDBACK_FORM_URL;
+        const label = `${value} star${value > 1 ? "s" : ""}`;
+        return `
+          <a
+            class="rating-star"
+            href="${target}"
+            target="_blank"
+            rel="noreferrer noopener"
+            aria-label="${label}"
+            data-rating="${value}"
+          >
+            ${STAR_SVG}
+          </a>
+        `;
+    }).join("");
+
+    const ratingContainer = document.createElement("div");
+    ratingContainer.className = "rating-container";
+    ratingContainer.innerHTML = `
+      <span class="rating-label">Rate us:</span>
+      <div class="full-stars">
+        <div class="rating-group">
+          ${stars}
+        </div>
+      </div>
+    `;
+
+    const starEls = ratingContainer.querySelectorAll(".rating-star");
+    let selectedRating = 0;
+
+    const renderStars = value => {
+        starEls.forEach(el => {
+            const starValue = Number(el.dataset.rating || 0);
+            el.classList.toggle("active", starValue <= value);
+        });
+    };
+
+    starEls.forEach(el => {
+        const value = Number(el.dataset.rating || 0);
+        el.addEventListener("mouseenter", () => renderStars(value));
+        el.addEventListener("focus", () => renderStars(value));
+        el.addEventListener("mouseleave", () => renderStars(selectedRating));
+        el.addEventListener("blur", () => renderStars(selectedRating));
+        el.addEventListener("click", () => {
+            selectedRating = value;
+            renderStars(selectedRating);
+        });
+    });
+
+    statusBar.insertBefore(ratingContainer, statusBar.firstChild);
 }
 
 function wireImportControls() {
@@ -675,6 +735,7 @@ hydrateSettings();
 easyMDE.codemirror.on("change", handleEditorChange);
 handleEditorChange();
 wireImportControls();
+insertRatingWidget();
 
 (async function autoLoadMarkdownFromUrl() {
     const url = getMarkdownUrlFromLocation();
