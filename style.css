@@ -12,6 +12,10 @@
 
 * { box-sizing: border-box; }
 
+html, body {
+    height: 100%;
+}
+
 body {
     margin: 0;
     font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
@@ -22,14 +26,15 @@ body {
 }
 
 .page {
-    width: calc(100% - 50px);
-    padding-top: 15px;
-    max-width: 1720px;
-    margin: 0 auto;
+    width: 100%;
+    padding: 15px 25px 20px;
+    max-width: none;
+    margin: 0;
     display: flex;
     flex-direction: column;
     gap: 15px;
     min-height: 100vh;
+    height: 100vh;
 }
 
 .topbar {
@@ -87,10 +92,9 @@ button.icon { width: 34px; height: 34px; padding: 0; display: grid; place-items:
     display: flex;
     gap: 16px;
     align-items: stretch;
-    justify-content: center;
-    flex-wrap: wrap;
-    height: calc(100vh - 140px);
-    min-height: 520px;
+    justify-content: flex-start;
+    flex: 1 1 auto;
+    min-height: 0;
     overflow: hidden;
 }
 
@@ -123,7 +127,8 @@ button.icon { width: 34px; height: 34px; padding: 0; display: grid; place-items:
 .panel-body { flex: 1; min-height: 0; overflow: hidden; }
 
 .editor-panel {
-    max-width: 50%;
+    flex: 1 1 0;
+    max-width: none;
 }
 
 .settings-open .editor-panel {
@@ -400,7 +405,8 @@ button.icon { width: 34px; height: 34px; padding: 0; display: grid; place-items:
 }
 
 .preview-panel {
-    max-width: 50%;
+    flex: 1 1 0;
+    max-width: none;
 }
 
 .settings-open .preview-panel {
